@@ -3,9 +3,9 @@ const fs = require('fs');
 
 const NODE = 'C:/Users/90630/.workbuddy/binaries/node/versions/22.22.2/node.exe';
 const SKILL = 'C:/Users/90630/.workbuddy/skills/ima-skills__skillhub';
-const FILE = 'C:/Users/90630/WorkBuddy/automation-2026-07-13-12-02-24/情绪管理-晓晓老师课堂笔记_20260719.md';
+const FILE = 'C:/Users/90630/WorkBuddy/automation-2026-07-13-12-02-24/情绪管理-晓晓老师课堂笔记_20260722.md';
 const KB = 'pm8-1404_EPGkcfBKDri-wPiUpjUHUjqokpiC7NvFo8=';
-const FNAME = '情绪管理-晓晓老师课堂笔记_20260719.md';
+const FNAME = '情绪管理-晓晓老师课堂笔记_20260722.md';
 const FSIZE = fs.statSync(FILE).size;
 
 function run(script, args) {
