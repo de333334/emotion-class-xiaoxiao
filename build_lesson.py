@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-情绪管理课 builder（2026-07-23 · 第十天）
+情绪管理课 builder（2026-07-24 · 第十一天）
 - 单一内容源 -> 生成 晓晓老师(XiaoxiaoNeural) 每句语音(base64 内联)
-- 输出「独立」单文件自包含 emotion-class-20260723.html (宋体/可调播放位置/上一句下一句/不挡字幕/费曼提问)
+- 输出「独立」单文件自包含 emotion-class-20260724.html (宋体/可调播放位置/上一句下一句/不挡字幕/费曼提问)
   ※ 每天一个新文件，绝不覆盖旧课页面（满足"每个网页对应一课不要更新网页"）
 - 同时输出 情绪管理-晓晓老师课堂笔记.md 与 带日期副本 供存入 ima 知识库 imao
-本日结构：复习前16招(五步刹车+静音+五感着陆+番茄+认知重评+方箱呼吸+第三人称抽离+冲动冲浪
-  +情绪命名+10-10-10+身体急停+我信息+六秒法则+记账本+课题分离+两分钟启动)
-  -> 新案例(2026-05-21 网易：药房男医生被一句小抱怨点着、当众扯白大褂要冲、同事死死拽住)
-  -> 原理(执行意图 if-then + 自我慈悲安抚系统)
-  -> 新招17 预设护栏法(列触发/写护栏/练自动) -> 新招18 自我慈悲法(觉察/共通人性/善待自己) -> 费曼自测
+本日结构：复习前18招(五步刹车+静音+五感着陆+番茄+认知重评+方箱呼吸+第三人称抽离+冲动冲浪
+  +情绪命名+10-10-10+身体急停+我信息+六秒法则+记账本+课题分离+两分钟启动+预设护栏+自我慈悲)
+  -> 新案例(2026 今日头条/腾讯新闻：小李谈涨薪被拒、气头上甩"不涨薪我就不干了"、被法院认定口头辞职有效丢掉工作)
+  -> 原理(正念觉察+认知解离 ACT)
+  -> 新招19 三分钟呼吸空间(觉察/集中呼吸/扩展) -> 新招20 认知解离法(加标签/看云/选动作) -> 费曼自测
 """
 import os, json, base64, asyncio, sys, shutil
 
@@ -19,306 +19,271 @@ RATE = "-8%"
 PITCH = "+0Hz"
 
 # ---------------------------------------------------------------- 案例插画（内联 SVG，保证离线可开）
-SVG_MAP = '''<svg viewBox="0 0 700 252" xmlns="http://www.w3.org/2000/svg">
-  <text x="350" y="20" font-size="15" fill="#5b8def" text-anchor="middle" font-family="sans-serif">🗺️ 情绪技能地图 · 前16招复习</text>
-  <g font-family="sans-serif" font-size="10.5">
-   <rect x="8" y="34" width="78" height="86" rx="12" fill="#eaf1ff" stroke="#5b8def" stroke-width="2"/>
-   <text x="47" y="58" fill="#2b6fb0" text-anchor="middle" font-weight="bold">①五步刹车</text>
-   <text x="47" y="80" fill="#243447" text-anchor="middle">停·数·命名</text>
-   <text x="47" y="100" fill="#6b7c8f" text-anchor="middle">🔥快炸灭火</text>
-   <rect x="92" y="34" width="78" height="86" rx="12" fill="#eafaf2" stroke="#2bb673" stroke-width="2"/>
-   <text x="131" y="58" fill="#1c7a4d" text-anchor="middle" font-weight="bold">②静音模式</text>
-   <text x="131" y="80" fill="#243447" text-anchor="middle">心是一杯水</text>
-   <text x="131" y="100" fill="#6b7c8f" text-anchor="middle">💧有火不泼人</text>
-   <rect x="176" y="34" width="78" height="86" rx="12" fill="#fff7e6" stroke="#ffb84d" stroke-width="2"/>
-   <text x="215" y="58" fill="#c98a14" text-anchor="middle" font-weight="bold">③五感着陆</text>
-   <text x="215" y="80" fill="#243447" text-anchor="middle">看5摸4听3</text>
-   <text x="215" y="100" fill="#6b7c8f" text-anchor="middle">🌀走神着陆</text>
-   <rect x="260" y="34" width="78" height="86" rx="12" fill="#f3ecff" stroke="#7c5cff" stroke-width="2"/>
-   <text x="299" y="58" fill="#5b3fd6" text-anchor="middle" font-weight="bold">④番茄专注</text>
-   <text x="299" y="80" fill="#243447" text-anchor="middle">25分只做一事</text>
-   <text x="299" y="100" fill="#6b7c8f" text-anchor="middle">🍅练定力</text>
-   <rect x="344" y="34" width="78" height="86" rx="12" fill="#fdeef4" stroke="#ff8fab" stroke-width="2"/>
-   <text x="383" y="58" fill="#d6455f" text-anchor="middle" font-weight="bold">⑤认知重评</text>
-   <text x="383" y="80" fill="#243447" text-anchor="middle">停·揪·换想法</text>
-   <text x="383" y="100" fill="#6b7c8f" text-anchor="middle">🧠换念换情绪</text>
-   <rect x="428" y="34" width="78" height="86" rx="12" fill="#eaf6ff" stroke="#3aa0e0" stroke-width="2"/>
-   <text x="467" y="58" fill="#1c7a9c" text-anchor="middle" font-weight="bold">⑥方箱呼吸</text>
-   <text x="467" y="80" fill="#243447" text-anchor="middle">吸4憋7呼8</text>
-   <text x="467" y="100" fill="#6b7c8f" text-anchor="middle">🌬️手抖降温</text>
-   <rect x="512" y="34" width="78" height="86" rx="12" fill="#eef7f2" stroke="#2bb673" stroke-width="2"/>
-   <text x="551" y="58" fill="#1c7a4d" text-anchor="middle" font-weight="bold">⑦第三人称</text>
-   <text x="551" y="80" fill="#243447" text-anchor="middle">退后·换角·劝友</text>
-   <text x="551" y="100" fill="#6b7c8f" text-anchor="middle">👁旁观一眼冷</text>
-   <rect x="596" y="34" width="78" height="86" rx="12" fill="#f3ecff" stroke="#7c5cff" stroke-width="2"/>
-   <text x="635" y="58" fill="#5b3fd6" text-anchor="middle" font-weight="bold">⑧冲动冲浪</text>
-   <text x="635" y="80" fill="#243447" text-anchor="middle">认浪·看浪·退</text>
-   <text x="635" y="100" fill="#6b7c8f" text-anchor="middle">🌊浪过你还在</text>
-   <rect x="8" y="134" width="78" height="86" rx="12" fill="#fff7e6" stroke="#ffb84d" stroke-width="2"/>
-   <text x="47" y="158" fill="#c98a14" text-anchor="middle" font-weight="bold">⑨情绪命名</text>
-   <text x="47" y="180" fill="#243447" text-anchor="middle">起名·打分·说写</text>
-   <text x="47" y="200" fill="#6b7c8f" text-anchor="middle">🏷️乱时先起名</text>
-   <rect x="92" y="134" width="78" height="86" rx="12" fill="#eaf1ff" stroke="#5b8def" stroke-width="2"/>
-   <text x="131" y="158" fill="#2b6fb0" text-anchor="middle" font-weight="bold">⑩10-10-10</text>
-   <text x="131" y="180" fill="#243447" text-anchor="middle">10分·10月·10年</text>
-   <text x="131" y="200" fill="#6b7c8f" text-anchor="middle">🔭拉远看开</text>
-   <rect x="176" y="134" width="78" height="86" rx="12" fill="#eaf6ff" stroke="#3aa0e0" stroke-width="2"/>
-   <text x="215" y="158" fill="#1c7a9c" text-anchor="middle" font-weight="bold">⑪身体急停</text>
-   <text x="215" y="180" fill="#243447" text-anchor="middle">离开·冷温·握踩</text>
-   <text x="215" y="200" fill="#6b7c8f" text-anchor="middle">🧊先退烧</text>
-   <rect x="260" y="134" width="78" height="86" rx="12" fill="#fdeef4" stroke="#ff8fab" stroke-width="2"/>
-   <text x="299" y="158" fill="#d6455f" text-anchor="middle" font-weight="bold">⑫我信息</text>
-   <text x="299" y="180" fill="#243447" text-anchor="middle">事实·感受·需·请</text>
-   <text x="299" y="200" fill="#6b7c8f" text-anchor="middle">💬只说观点</text>
-   <rect x="344" y="134" width="78" height="86" rx="12" fill="#fff3e6" stroke="#ff9a3c" stroke-width="2"/>
-   <text x="383" y="158" fill="#c98a14" text-anchor="middle" font-weight="bold">⑬六秒法则</text>
-   <text x="383" y="180" fill="#243447" text-anchor="middle">闭嘴·数六</text>
-   <text x="383" y="200" fill="#6b7c8f" text-anchor="middle">⏳嘴快先停</text>
-   <rect x="428" y="134" width="78" height="86" rx="12" fill="#e9f9ef" stroke="#2bb673" stroke-width="2"/>
-   <text x="467" y="158" fill="#1c7a4d" text-anchor="middle" font-weight="bold">⑭记账本</text>
-   <text x="467" y="180" fill="#243447" text-anchor="middle">触发·念头·新招</text>
-   <text x="467" y="200" fill="#6b7c8f" text-anchor="middle">📒天天记天天安</text>
-   <rect x="512" y="134" width="78" height="86" rx="12" fill="#eaf1ff" stroke="#5b8def" stroke-width="2"/>
-   <text x="551" y="158" fill="#2b6fb0" text-anchor="middle" font-weight="bold">⑮课题分离</text>
-   <text x="551" y="180" fill="#243447" text-anchor="middle">别人的题不扛</text>
-   <text x="551" y="200" fill="#6b7c8f" text-anchor="middle">🚧不还别人账</text>
-   <rect x="596" y="134" width="78" height="86" rx="12" fill="#fff7e6" stroke="#ffb84d" stroke-width="2"/>
-   <text x="635" y="158" fill="#c98a14" text-anchor="middle" font-weight="bold">⑯两分钟启动</text>
-   <text x="635" y="180" fill="#243447" text-anchor="middle">拆小步·只做2分</text>
-   <text x="635" y="200" fill="#6b7c8f" text-anchor="middle">🚀手指一动静</text>
-  </g>
-</svg>'''
+# 十八招技能地图：3 行 × 6 列，用列表动态生成，避免手写 18 个框出错
+SKILLS18 = [
+    ("①五步刹车", "火起先停", "🔥", "#eaf1ff", "#5b8def"),
+    ("②静音模式", "心如止水", "💧", "#eafaf2", "#2bb673"),
+    ("③五感着陆", "看5摸4听3", "🌀", "#fff7e6", "#ffb84d"),
+    ("④番茄专注", "25分只做一事", "🍅", "#f3ecff", "#7c5cff"),
+    ("⑤认知重评", "停·揪·换想法", "🧠", "#fdeef4", "#ff8fab"),
+    ("⑥方箱呼吸", "吸4憋7呼8", "🌬️", "#eaf6ff", "#3aa0e0"),
+    ("⑦第三人称", "退后·换角·劝友", "👁", "#eef7f2", "#2bb673"),
+    ("⑧冲动冲浪", "认浪·看浪·退", "🌊", "#f3ecff", "#7c5cff"),
+    ("⑨情绪命名", "起名·打分·说写", "🏷️", "#fff7e6", "#ffb84d"),
+    ("⑩10-10-10", "10分·10月·10年", "🔭", "#eaf1ff", "#5b8def"),
+    ("⑪身体急停", "离开·冷温·握踩", "🧊", "#eaf6ff", "#3aa0e0"),
+    ("⑫我信息", "事实·感受·需·请", "💬", "#fdeef4", "#ff8fab"),
+    ("⑬六秒法则", "闭嘴·数六", "⏳", "#fff3e6", "#ff9a3c"),
+    ("⑭记账本", "触发·念头·新招", "📒", "#e9f9ef", "#2bb673"),
+    ("⑮课题分离", "别人的题不扛", "🚧", "#eaf1ff", "#5b8def"),
+    ("⑯两分钟启动", "拆小步·只做2分", "🚀", "#fff7e6", "#ffb84d"),
+    ("⑰预设护栏", "如果火起就退", "🛡️", "#f3ecff", "#7c5cff"),
+    ("⑱自我慈悲", "对自己温柔", "💗", "#fdeef4", "#ff8fab"),
+]
 
-SVG_CASE = '''<svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg">
-  <text x="320" y="20" font-size="13.5" fill="#c0492a" text-anchor="middle" font-family="sans-serif">案例：药房窗口一句小抱怨 → 男医生当众扯白大褂、红眼要冲 → 同事死死拽住</text>
-  <rect x="20" y="38" width="280" height="150" rx="14" fill="#fff7e6" stroke="#ffb84d" stroke-width="1.6"/>
-  <circle cx="74" cy="84" r="23" fill="#ffd9b8"/>
-  <path d="M59 78 l9 5 M89 78 l-9 5" stroke="#c0392b" stroke-width="3"/>
-  <circle cx="67" cy="90" r="2.4" fill="#3a3a3a"/><circle cx="81" cy="90" r="2.4" fill="#3a3a3a"/>
-  <path d="M64 100 q10 6 20 0" stroke="#c0392b" stroke-width="3" fill="none"/>
-  <rect x="106" y="62" width="176" height="40" rx="10" fill="#fff" stroke="#ffb84d" stroke-width="1.6"/>
-  <text x="194" y="80" font-size="12" fill="#c98a14" text-anchor="middle" font-family="sans-serif">“白吃饭、不办事！”</text>
-  <text x="160" y="118" font-size="11" fill="#c98a14" text-anchor="middle" font-family="sans-serif">😠 患者得理不饶人</text>
-  <text x="160" y="170" font-size="12" fill="#c0492a" text-anchor="middle" font-family="sans-serif">导火索：一句小抱怨</text>
-  <text x="160" y="190" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">本可翻篇，他却记进了“情绪账户”</text>
-  <text x="320" y="118" font-size="26" fill="#c0492a" text-anchor="middle">VS</text>
-  <rect x="340" y="38" width="280" height="150" rx="14" fill="#fdf3f1" stroke="#ff8a8a" stroke-width="1.6"/>
-  <circle cx="396" cy="80" r="20" fill="#ffd9b8"/>
-  <circle cx="389" cy="80" r="2.4" fill="#3a3a3a"/><circle cx="403" cy="80" r="2.4" fill="#3a3a3a"/>
-  <path d="M388 90 q8 7 16 0" stroke="#c0392b" stroke-width="2.6" fill="none"/>
-  <rect x="378" y="100" width="36" height="44" rx="8" fill="#fff" stroke="#d9d9d9" stroke-width="1.4"/>
-  <path d="M430 104 q26 -8 40 22" stroke="#bbb" stroke-width="3" fill="none" stroke-dasharray="4 4"/>
-  <rect x="430" y="118" width="34" height="40" rx="8" fill="#fff" stroke="#ddd" stroke-width="1.2" transform="rotate(18 447 138)"/>
-  <text x="480" y="118" font-size="11" fill="#c0492a" text-anchor="middle" font-family="sans-serif">💥 当众扯白大褂甩地</text>
-  <text x="480" y="170" font-size="12" fill="#c0492a" text-anchor="middle" font-family="sans-serif">情绪账户早透支，一句引爆</text>
-  <text x="480" y="190" font-size="12" fill="#1c7a4d" text-anchor="middle" font-family="sans-serif">✅ 本可：退后一步、用护栏</text>
-  <text x="320" y="212" font-size="11.5" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">情绪账户长期透支：平时委屈只忍不理，一句小抱怨成导火索 → 一点就炸、事后又后悔</text>
+def build_map_svg():
+    W = 720; cols = 6; rows = 3; mx = 8; gx = 8; gy = 10; y0 = 30; bh = 78
+    bw = (W - 2*mx - (cols-1)*gx) / cols
+    out = [f'<svg viewBox="0 0 {W} {y0+rows*bh+(rows-1)*gy+14}" xmlns="http://www.w3.org/2000/svg">']
+    out.append(f'  <text x="{W/2}" y="20" font-size="15" fill="#5b8def" text-anchor="middle" font-family="sans-serif">🗺️ 情绪技能地图 · 前18招复习</text>')
+    for i,(name,sub,emo,fill,stroke) in enumerate(SKILLS18):
+        r = i // cols; c = i % cols
+        x = mx + c*(bw+gx); y = y0 + r*(bh+gy)
+        out.append(f'  <rect x="{x:.1f}" y="{y}" width="{bw:.1f}" height="{bh}" rx="12" fill="{fill}" stroke="{stroke}" stroke-width="2"/>')
+        out.append(f'  <text x="{x+bw/2:.1f}" y="{y+24}" fill="{stroke}" text-anchor="middle" font-weight="bold" font-size="11.5" font-family="sans-serif">{name}</text>')
+        out.append(f'  <text x="{x+bw/2:.1f}" y="{y+45}" fill="#243447" text-anchor="middle" font-size="10" font-family="sans-serif">{sub}</text>')
+        out.append(f'  <text x="{x+bw/2:.1f}" y="{y+66}" text-anchor="middle" font-size="15" font-family="sans-serif">{emo}</text>')
+    out.append('</svg>')
+    return "".join(out)
+
+SVG_MAP = build_map_svg()
+
+SVG_CASE = '''<svg viewBox="0 0 640 252" xmlns="http://www.w3.org/2000/svg">
+  <text x="320" y="20" font-size="13.5" fill="#c0492a" text-anchor="middle" font-family="sans-serif">案例：小李谈涨薪被拒、气头上甩"不干了" → 没澄清 → 法院判口头辞职有效、丢工作无赔偿</text>
+  <rect x="18" y="38" width="280" height="156" rx="14" fill="#fff7e6" stroke="#ffb84d" stroke-width="1.6"/>
+  <circle cx="72" cy="82" r="23" fill="#ffd9b8"/>
+  <path d="M57 76 l9 5 M87 76 l-9 5" stroke="#c0392b" stroke-width="3"/>
+  <circle cx="65" cy="88" r="2.4" fill="#3a3a3a"/><circle cx="79" cy="88" r="2.4" fill="#3a3a3a"/>
+  <path d="M62 98 q10 6 20 0" stroke="#c0392b" stroke-width="3" fill="none"/>
+  <rect x="104" y="60" width="180" height="40" rx="10" fill="#fff" stroke="#ffb84d" stroke-width="1.6"/>
+  <text x="194" y="78" font-size="12" fill="#c98a14" text-anchor="middle" font-family="sans-serif">"不涨薪我就不干了！"</text>
+  <text x="158" y="116" font-size="11" fill="#c98a14" text-anchor="middle" font-family="sans-serif">😤 嘴比脑子快·气话出口</text>
+  <text x="158" y="170" font-size="12" fill="#c0492a" text-anchor="middle" font-family="sans-serif">导火索：领导一句"今年不调"</text>
+  <text x="158" y="190" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">他以为只是说说，没澄清收回</text>
+  <text x="320" y="120" font-size="26" fill="#c0492a" text-anchor="middle">VS</text>
+  <rect x="342" y="38" width="280" height="156" rx="14" fill="#fdf3f1" stroke="#ff8a8a" stroke-width="1.6"/>
+  <rect x="372" y="58" width="60" height="44" rx="6" fill="#fff" stroke="#d9d9d9" stroke-width="1.4"/>
+  <text x="402" y="84" font-size="9" fill="#888" text-anchor="middle" font-family="sans-serif">确认单</text>
+  <text x="470" y="76" font-size="20" text-anchor="middle">🔨</text>
+  <text x="470" y="98" font-size="10" fill="#c0492a" text-anchor="middle" font-family="sans-serif">法院:辞职有效</text>
+  <text x="482" y="150" font-size="11.5" fill="#c0492a" text-anchor="middle" font-family="sans-serif">💥 工作丢了·一分没赔</text>
+  <text x="482" y="178" font-size="12" fill="#1c7a4d" text-anchor="middle" font-family="sans-serif">✅ 本可:三分钟呼吸静心+</text>
+  <text x="482" y="196" font-size="12" fill="#1c7a4d" text-anchor="middle" font-family="sans-serif">认知解离把"不干了"当广播</text>
+  <text x="320" y="216" font-size="11.5" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">职场不是发泄情绪的地方：话一出口责任就来，气话被当真就成了辞职报告</text>
 </svg>'''
 
 SVG_PRINCIPLE = '''<svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg">
-  <text x="320" y="20" font-size="15" fill="#5b8def" text-anchor="middle" font-family="sans-serif">两个道理：执行意图 if-then(提前写剧本,现场不费意志) · 自我慈悲(对自己温柔,激活安抚系统)</text>
+  <text x="320" y="20" font-size="15" fill="#5b8def" text-anchor="middle" font-family="sans-serif">两个道理：正念觉察(不评判看当下,呼吸作锚) · 认知解离(念头≠事实,只观察不认同)</text>
   <g font-family="sans-serif">
    <rect x="20" y="38" width="290" height="196" rx="14" fill="#eaf1ff" stroke="#5b8def" stroke-width="2"/>
-   <text x="165" y="64" font-size="13" fill="#2b6fb0" text-anchor="middle" font-weight="bold">道理一 · 执行意图(if-then)</text>
-   <rect x="55" y="84" width="100" height="34" rx="10" fill="#fff" stroke="#5b8def" stroke-width="1.4"/>
-   <text x="105" y="106" font-size="13" fill="#c0492a" text-anchor="middle">如果 火起</text>
-   <path d="M160 101 h26 M182 93 l8 8 -8 8" stroke="#9aa7bd" stroke-width="3" fill="none"/>
-   <rect x="150" y="84" width="110" height="34" rx="10" fill="#eafaf2" stroke="#2bb673" stroke-width="1.4"/>
-   <text x="205" y="106" font-size="13" fill="#1c7a4d" text-anchor="middle">就 退后喝水</text>
-   <text x="165" y="148" font-size="11" fill="#243447" text-anchor="middle">提前写进脑子 → 现场触发自动执行</text>
-   <text x="165" y="170" font-size="11" fill="#1c7a4d" text-anchor="middle">不靠快烧完的意志力</text>
-   <text x="165" y="200" font-size="10.5" fill="#6b7c8f" text-anchor="middle">实验：用 if-then 的人，目标达成率高 2-3 倍</text>
+   <text x="165" y="64" font-size="13" fill="#2b6fb0" text-anchor="middle" font-weight="bold">道理一 · 正念觉察(卡巴金)</text>
+   <circle cx="110" cy="110" r="22" fill="#cfe3ff"/>
+   <text x="110" y="117" text-anchor="middle" font-size="20">🧘</text>
+   <text x="220" y="100" font-size="11" fill="#243447" text-anchor="middle">"对当下不加评判的觉察"</text>
+   <text x="220" y="120" font-size="11" fill="#243447" text-anchor="middle">像看湖面起风，风会自停</text>
+   <text x="165" y="158" font-size="11" fill="#243447" text-anchor="middle">呼吸是"锚"：把飘走的心拉回当下</text>
+   <text x="165" y="180" font-size="11" fill="#1c7a4d" text-anchor="middle">练几分钟，管平静的脑区会变厚</text>
+   <text x="165" y="208" font-size="10.5" fill="#6b7c8f" text-anchor="middle">硬压像按皮球，松手更弹；正念温柔接住</text>
    <rect x="340" y="38" width="290" height="196" rx="14" fill="#fdeef4" stroke="#ff8fab" stroke-width="2"/>
-   <text x="485" y="64" font-size="13" fill="#d6455f" text-anchor="middle" font-weight="bold">道理二 · 自我慈悲(安抚)</text>
-   <text x="400" y="100" font-size="20" text-anchor="middle">😠</text>
-   <text x="400" y="124" font-size="10.5" fill="#c0492a" text-anchor="middle">自责→威胁系统</text>
-   <text x="400" y="142" font-size="10.5" fill="#c0492a" text-anchor="middle">皮质醇↑ 更焦虑更炸</text>
-   <path d="M424 106 h30" stroke="#d99" stroke-width="2"/>
-   <text x="570" y="100" font-size="20" text-anchor="middle">🌊</text>
-   <text x="570" y="124" font-size="10.5" fill="#1c7a4d" text-anchor="middle">慈悲→安抚系统</text>
-   <text x="570" y="142" font-size="10.5" fill="#1c7a4d" text-anchor="middle">平静 心如止水</text>
-   <text x="485" y="186" font-size="11" fill="#243447" text-anchor="middle">对自己狠=心翻江倒海；对自己好=心静</text>
-   <text x="485" y="210" font-size="10.5" fill="#6b7c8f" text-anchor="middle">心如止水，是先对自己止争</text>
+   <text x="485" y="64" font-size="13" fill="#d6455f" text-anchor="middle" font-weight="bold">道理二 · 认知解离(ACT)</text>
+   <text x="400" y="104" font-size="20" text-anchor="middle">💭</text>
+   <text x="400" y="128" font-size="10.5" fill="#c0492a" text-anchor="middle">念头"我不行"冒出</text>
+   <text x="400" y="146" font-size="10.5" fill="#c0492a" text-anchor="middle">你当真→被牵着跑</text>
+   <path d="M424 116 h30" stroke="#d99" stroke-width="2"/>
+   <text x="570" y="104" font-size="20" text-anchor="middle">☁️</text>
+   <text x="570" y="128" font-size="10.5" fill="#1c7a4d" text-anchor="middle">加前缀"我注意到想…"</text>
+   <text x="570" y="146" font-size="10.5" fill="#1c7a4d" text-anchor="middle">当云看→不追不赶</text>
+   <text x="485" y="184" font-size="11" fill="#243447" text-anchor="middle">你不是你的念头；念头≠事实≠命令</text>
+   <text x="485" y="210" font-size="10.5" fill="#6b7c8f" text-anchor="middle">解离时,管"把念头当真"的脑区安静了</text>
   </g>
 </svg>'''
 
-SVG_GUARD = '''<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg">
-  <text x="320" y="22" font-size="15" fill="#1c7a4d" text-anchor="middle" font-family="sans-serif">预设护栏法（执行意图 if-then）：把"遇到刺激怎么办"写成"如果…就…"剧本，提前存脑子，现场自动执行</text>
+SVG_BREATH = '''<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg">
+  <text x="320" y="22" font-size="15" fill="#1c7a4d" text-anchor="middle" font-family="sans-serif">三分钟呼吸空间（正念 MBSR）：心浮火冒时，觉察→集中呼吸→扩展觉知，风过湖面心自静</text>
   <g font-family="sans-serif">
    <rect x="14" y="44" width="190" height="140" rx="14" fill="#eafaf2" stroke="#2bb673" stroke-width="2"/>
-   <text x="109" y="74" font-size="14" fill="#1c7a4d" text-anchor="middle" font-weight="bold">① 列触发</text>
-   <text x="109" y="100" font-size="11" fill="#243447" text-anchor="middle">想清楚最容易炸、</text>
-   <text x="109" y="120" font-size="11" fill="#243447" text-anchor="middle">最容易摸机的场景</text>
-   <text x="109" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">同事甩脸 / 坐工位想摸机</text>
-   <text x="109" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">写下来存手机置顶</text>
+   <text x="109" y="74" font-size="14" fill="#1c7a4d" text-anchor="middle" font-weight="bold">① 觉察(约1分)</text>
+   <text x="109" y="100" font-size="11" fill="#243447" text-anchor="middle">问自己"我现在怎么了"</text>
+   <text x="109" y="120" font-size="11" fill="#243447" text-anchor="middle">浮躁?生气?走神?</text>
+   <text x="109" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">给情绪起名"我在浮躁"</text>
+   <text x="109" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">不评判,看见就好</text>
    <path d="M204 114 l16 0 M220 106 l8 8 -8 8" stroke="#9aa7bd" stroke-width="3" fill="none"/>
    <rect x="222" y="44" width="190" height="140" rx="14" fill="#eaf6ff" stroke="#3aa0e0" stroke-width="2"/>
-   <text x="317" y="74" font-size="14" fill="#1c7a9c" text-anchor="middle" font-weight="bold">② 写护栏</text>
-   <text x="317" y="100" font-size="11" fill="#243447" text-anchor="middle">每条触发配一个</text>
-   <text x="317" y="120" font-size="11" fill="#243447" text-anchor="middle">"就"动作（要具体）</text>
-   <text x="317" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">火起→退后喝水</text>
-   <text x="317" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">坐定→开番茄手机扔远</text>
+   <text x="317" y="74" font-size="14" fill="#1c7a9c" text-anchor="middle" font-weight="bold">② 集中呼吸(约1分)</text>
+   <text x="317" y="100" font-size="11" fill="#243447" text-anchor="middle">注意放呼吸上</text>
+   <text x="317" y="120" font-size="11" fill="#243447" text-anchor="middle">吸数一呼数一,跑偏拉回</text>
+   <text x="317" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">呼吸是"锚"拴回当下</text>
+   <text x="317" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">只跟呼吸走</text>
    <path d="M412 114 l16 0 M428 106 l8 8 -8 8" stroke="#9aa7bd" stroke-width="3" fill="none"/>
    <rect x="430" y="44" width="190" height="140" rx="14" fill="#f3ecff" stroke="#7c5cff" stroke-width="2"/>
-   <text x="525" y="74" font-size="14" fill="#5b3fd6" text-anchor="middle" font-weight="bold">③ 练成自动</text>
-   <text x="525" y="100" font-size="11" fill="#243447" text-anchor="middle">每天上班前扫一遍</text>
-   <text x="525" y="120" font-size="11" fill="#243447" text-anchor="middle">像过安检、成肌肉记忆</text>
-   <text x="525" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">现场一遇，身体自动做</text>
-   <text x="525" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">不用想、不靠意志</text>
-   <text x="320" y="216" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">如果火起我就退，如果坐定就开钟；提前写进脑子里，现场不靠意志力</text>
+   <text x="525" y="74" font-size="14" fill="#5b3fd6" text-anchor="middle" font-weight="bold">③ 扩展(回到事)</text>
+   <text x="525" y="100" font-size="11" fill="#243447" text-anchor="middle">带静一点的觉知</text>
+   <text x="525" y="120" font-size="11" fill="#243447" text-anchor="middle">睁眼回手头的事</text>
+   <text x="525" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">心像湖面风过自平</text>
+   <text x="525" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">只三分钟</text>
+   <text x="320" y="216" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">一觉浮躁二回呼吸，三带觉知做手里事；心像湖面风过自静，正念三分钟就平息</text>
   </g>
 </svg>'''
 
-SVG_SELF = '''<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg">
-  <text x="320" y="22" font-size="15" fill="#c98a14" text-anchor="middle" font-family="sans-serif">自我慈悲法（对自己温柔）：出错浮躁别骂自己，像安慰好朋友一样安慰自己</text>
+SVG_DEFUSE = '''<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg">
+  <text x="320" y="22" font-size="15" fill="#c98a14" text-anchor="middle" font-family="sans-serif">认知解离法（念头≠事实）：给念头加前缀、当云看不追不赶、照样干活，不被念头牵着走</text>
   <g font-family="sans-serif">
    <rect x="14" y="44" width="190" height="140" rx="14" fill="#fff7e6" stroke="#ffb84d" stroke-width="2"/>
-   <text x="109" y="74" font-size="14" fill="#c98a14" text-anchor="middle" font-weight="bold">① 觉察</text>
-   <text x="109" y="100" font-size="11" fill="#243447" text-anchor="middle">看见"我在骂自己"</text>
-   <text x="109" y="120" font-size="11" fill="#243447" text-anchor="middle">喊停这个念头</text>
-   <text x="109" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">你不是"没用的人"</text>
-   <text x="109" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">你只是"此刻有点乱"</text>
+   <text x="109" y="74" font-size="14" fill="#c98a14" text-anchor="middle" font-weight="bold">① 加标签</text>
+   <text x="109" y="100" font-size="11" fill="#243447" text-anchor="middle">念头"我不行"冒出</text>
+   <text x="109" y="120" font-size="11" fill="#243447" text-anchor="middle">前面加"我注意到我</text>
+   <text x="109" y="140" font-size="11" fill="#243447" text-anchor="middle">正在想…"</text>
+   <text x="109" y="164" font-size="10.5" fill="#6b7c8f" text-anchor="middle">你≠念头,只是广播</text>
    <path d="M204 114 l16 0 M220 106 l8 8 -8 8" stroke="#9aa7bd" stroke-width="3" fill="none"/>
    <rect x="222" y="44" width="190" height="140" rx="14" fill="#eaf1ff" stroke="#5b8def" stroke-width="2"/>
-   <text x="317" y="74" font-size="14" fill="#2b6fb0" text-anchor="middle" font-weight="bold">② 共通人性</text>
-   <text x="317" y="100" font-size="11" fill="#243447" text-anchor="middle">提醒自己</text>
-   <text x="317" y="120" font-size="11" fill="#243447" text-anchor="middle">人人都会出错浮躁</text>
-   <text x="317" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">这不只我一个</text>
-   <text x="317" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">谁没崩过？不是怪胎</text>
+   <text x="317" y="74" font-size="14" fill="#2b6fb0" text-anchor="middle" font-weight="bold">② 看云</text>
+   <text x="317" y="100" font-size="11" fill="#243447" text-anchor="middle">念头当天上的云</text>
+   <text x="317" y="120" font-size="11" fill="#243447" text-anchor="middle">看见,不追不赶</text>
+   <text x="317" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">不和它吵架</text>
+   <text x="317" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">它飘走,你站地上看</text>
    <path d="M412 114 l16 0 M428 106 l8 8 -8 8" stroke="#9aa7bd" stroke-width="3" fill="none"/>
    <rect x="430" y="44" width="190" height="140" rx="14" fill="#fdeef4" stroke="#ff8fab" stroke-width="2"/>
-   <text x="525" y="74" font-size="14" fill="#d6455f" text-anchor="middle" font-weight="bold">③ 善待自己</text>
-   <text x="525" y="100" font-size="11" fill="#243447" text-anchor="middle">手放胸口说一句</text>
-   <text x="525" y="120" font-size="11" fill="#243447" text-anchor="middle">"慢慢来，我可以的"</text>
-   <text x="525" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">给心打镇静剂</text>
-   <text x="525" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">先安抚，再改活</text>
-   <text x="320" y="216" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">出错不是我一个，拍拍胸口对自己好；不骂自己不焦灼，心如止水静悄悄</text>
+   <text x="525" y="74" font-size="14" fill="#d6455f" text-anchor="middle" font-weight="bold">③ 选动作</text>
+   <text x="525" y="100" font-size="11" fill="#243447" text-anchor="middle">念头只是广播</text>
+   <text x="525" y="120" font-size="11" fill="#243447" text-anchor="middle">问"带它我下一步干啥"</text>
+   <text x="525" y="144" font-size="10.5" fill="#6b7c8f" text-anchor="middle">照样写报告回消息</text>
+   <text x="525" y="166" font-size="10.5" fill="#6b7c8f" text-anchor="middle">你听广播还能走路</text>
+   <text x="320" y="216" font-size="12" fill="#6b7c8f" text-anchor="middle" font-family="sans-serif">念头不是我，加个前缀看云飘；它说它说由它说，我干我的不逃跑</text>
   </g>
 </svg>'''
 
-# ---------------------------------------------------------------- 课程内容（第十天）
+# ---------------------------------------------------------------- 课程内容（第十一天）
 SECTIONS = [
-  {"type":"speak","title":"开场 · 第十天，先串起前16招","rhyme":None,"img":None,"sentences":[
-    "同学你好，我是晓晓老师！咱们的情绪管理课到第十天啦。前九天你攒了十六招本领：第一天五步刹车加静音模式，第二天五感着陆加番茄专注，第三天认知重评加方箱呼吸，第四天第三人称抽离加冲动冲浪，第五天情绪命名法加10-10-10透视法，第六天身体急停法加我信息表达法，第七天六秒法则加情绪记账本，第八天课题分离法加两分钟启动法。今天先把这十六招串成一张情绪技能地图，再教你两招新本领，专治你最头疼的两件事——一遇上刺激就火冒三丈、控制不住脾气；还有一坐到电脑前心就浮、老想摸手机、干正事像上刑。",
-    "先复习老口号：任何场合——办公室、工作群、会议室、甚至医院药房窗口——都不是展示真性情的地方，它只是表达观点的地方。你是去把事说清楚的，不是去把脾气秀出来的。",
-    "今天要补的第一块：你容易被一点小事点燃——别人一句难听话、一个甩脸，你火就上来了，话比脑子快，事后又后悔。第二块：你对自己特别狠——一出错就骂自己怎么这么没用，越骂越急躁越乱。今天两招，一招管现场不炸，一招管不跟自己过不去。"
+  {"type":"speak","title":"开场 · 第十一天，先串起前18招","rhyme":None,"img":None,"sentences":[
+    "同学你好，我是晓晓老师！咱们的情绪管理课到第十一天啦。前面十天你攒了十八招本领：第一天五步刹车加静音模式，第二天五感着陆加番茄专注，第三天认知重评加方箱呼吸，第四天第三人称抽离加冲动冲浪，第五天情绪命名法加10-10-10透视法，第六天身体急停法加我信息表达法，第七天六秒法则加情绪记账本，第八天课题分离法加两分钟启动法，第九天预设护栏法加自我慈悲法。今天先把这十八招串成一张情绪技能地图，再教你两招新本领，专治你最头疼的——心不够静、浮躁不安，还有脑子里念头乱跑、老觉得自己不行、被念头牵着走。",
+    "先复习老口号：任何场合——办公室、工作群、会议室——都不是展示真性情的地方，它只是表达观点的地方。你是去把事说清楚的，不是去把脾气和念头秀出来的。",
+    "今天要补的两块：第一块，你心不够静、浮躁不安，坐下来心就飘、像有只猴子在脑子里蹦，越想静越乱。第二块，你不会管念头——委屈、生气时，脑子里冒出我不行了、我不干了、我真没用这些念头，你把它们当真，越想越炸、越想越丧，甚至真说出狠话、做出后悔的事。今天两招，一招让你心静下来，一招让你和念头拉开距离。"
   ]},
 
-  {"type":"speak","title":"复习 · 十六招技能地图","rhyme":None,"img":SVG_MAP,"sentences":[
-    "先复习十六招，编成一张地图。第一招五步刹车——一停二数三命名，四转五说；火气冒头先喊停，只说观点不秀脾气。第二招静音模式——心是一杯水，摇浑放自清，有火不泼别人。第三招五感着陆——看五摸四听三声，走神坐不住用它。第四招番茄专注——二十五分只做一事，手机扔远练定力。",
-    "第五招认知重评——火起先喊停、揪出念头、换个想法，换想法就换情绪。第六招方箱呼吸——吸气四憋七呼八憋四，画方箱一分钟降温。第七招第三人称抽离——退后、换角、劝友，把我换成朋友视角火就小。第八招冲动冲浪——认浪、看浪、等浪退，约十分钟浪自己走。",
-    "第九招情绪命名法——精准起名、温度计打分、说或写下来，你不是情绪你是起名的人。第十招10-10-10透视法——10分后10月后10年后还重要吗，拉远看浮躁就散。第十一招身体急停法——离开现场、冷水温水、握拳松拳、脚踩地、暂不回消息，身体是开关先退烧。第十二招我信息表达法——事实→感受→需要→请求，用我开头只说观点不人身攻击。",
-    "第十三招六秒法则——火冒三丈先闭嘴、默数到六、等理智脑上线、再开口。第十四招情绪记账本——睡前三栏触发、念头、新招，天天记、天天安。第十五招课题分离法——同事甩脸是别人课题，我的活儿我写好，别人的题我不扛。第十六招两分钟启动法——大活先拆第一步、只做两分不贪多，手指一动心就静。今天两招管最前面的替别人内耗和大活不动手、还有一点就炸、跟自己过不去。"
+  {"type":"speak","title":"复习 · 十八招技能地图","rhyme":None,"img":SVG_MAP,"sentences":[
+    "先复习十八招，编成一张地图。第一招五步刹车——一停二数三命名，四转五说；火气冒头先喊停。第二招静音模式——心是一杯水，有火不泼别人。第三招五感着陆——看五摸四听三声，走神用它。第四招番茄专注——二十五分只做一事，手机扔远练定力。",
+    "第五招认知重评——停、揪念头、换想法。第六招方箱呼吸——吸四憋七呼八憋四，画方箱降温。第七招第三人称抽离——退后换角劝友。第八招冲动冲浪——认浪看浪等浪退。第九招情绪命名法——起名打分说写，你不是情绪你是起名的人。",
+    "第十招10-10-10透视——10分10月10年后拉远看。第十一招身体急停——离开冷水握拳脚踩地，身体是开关。第十二招我信息——事实感受需要请求，只说观点。第十三招六秒法则——火冒三丈先闭嘴数六。第十四招记账本——睡前三栏触发念头新招。",
+    "第十五招课题分离——别人的题不扛。第十六招两分钟启动——大活先拆只做两分，手指一动心就静。第十七招预设护栏——如果火起就退后，现场自动执行。第十八招自我慈悲——对自己温柔，不自我攻击。今天两招，专管心不够静浮躁和被念头带跑自我攻击。"
   ]},
 
-  {"type":"quiz","title":"复习小测 · 走神想摸机 + 一点就炸用哪招","quiz":{
-    "q":"开会时你心飘了、老想摸手机，偏偏隔壁同事又甩你一句难听话，你火一下就上来了。前16招里该先动哪两招管走神想摸机，又该先动哪招管一点就炸？",
+  {"type":"quiz","title":"复习小测 · 浮躁/一点就炸/自我攻击用哪招","quiz":{
+    "q":"你一坐到工位心就飘、老想摸手机，偏偏领导皱眉说方案不行，你火一下上来，同时脑子里冒出我真没用。前18招里，管浮躁坐不住、管一点就炸、管自我攻击（骂自己）分别该先动哪招？",
     "opts":[
-      {"t":"走神摸机→五感着陆(拉回当下)+番茄专注(25分只做一事手机扔远)；一点就炸→五步刹车(一停二数)或六秒法则(闭嘴数六)先灭火","ok":True},
-      {"t":"走神摸机→冲动冲浪(那是管已起冲动想发作，不是走神)","ok":False},
-      {"t":"一点就炸→情绪记账本(那是睡前复盘，不是现场灭火)","ok":False}
+      {"t":"浮躁坐不住→五感着陆(拉回当下)+番茄专注(开25分手机扔远)+两分钟启动(先拆小步)；一点就炸→五步刹车(停数)或六秒法则(数六)；自我攻击→自我慈悲(手放胸口说慢慢来)。今天再加心静用呼吸空间、念头带跑用认知解离","ok":True},
+      {"t":"浮躁坐不住→冲动冲浪(那是管已起大浪想发作，不是走神)","ok":False},
+      {"t":"自我攻击→继续骂自己骂醒(自责只会皮质醇↑更炸)","ok":False}
     ],
-    "stu":"小浩抢答：老师，一点就炸是不是用冲动冲浪压一压？",
-    "teacher":"晓晓老师笑：冲动冲浪是给已经上头、想摔东西怼人那股浪用的，要等十分钟。可你这是刚被一句话点着、火苗还小——用第一招五步刹车(停、数、命名)或第十三招六秒法则(闭嘴数六)最快灭火；走神摸手机是另一码事，用第三招五感着陆加第四招番茄专注。分工记牢：走神→五感加番茄；小火苗→刹车加六秒；大浪→冲浪加方箱。",
-    "card":["走神想摸机=五感着陆(拉回当下)+番茄专注(25分只做一事手机扔远)。","一点小火苗=五步刹车(停数命名)或六秒法则(闭嘴数六)；大浪才用冲浪加方箱。"]
+    "stu":"小浩抢答：老师，心静不下来是不是硬压住不想就静了？",
+    "teacher":"晓晓老师笑：越硬压越反弹，像把皮球按水里，松手更弹。心浮躁时，别和它较劲——用第十九招三分钟呼吸空间，把注意力轻轻放到呼吸上，风过湖面自然静。再配两分钟启动，手指一动就踏实了。",
+    "card":["浮躁坐不住=五感着陆+番茄专注+两分钟启动；一点就炸=五步刹车或六秒法则；自我攻击=自我慈悲。","心静不下来别硬压(越压越弹)，用呼吸空间把注意放呼吸，风过湖面自静。"]
   }},
 
-  {"type":"speak","title":"第一幕 · 新案例：一句小抱怨，医生当众崩了","rhyme":None,"img":SVG_CASE,"sentences":[
-    "讲个 2026 年刚发生的真实事（来源网易，2026-05-21，医院药房窗口）。主人公是位男医生，在药房窗口配药多年，平时话少、干活稳，最擅长一个字——忍。",
-    "那天，一名男患者来取特慢病药，没带身份证，按规定必须核验身份。医生照规矩说：系统过不了，您回家取证件再来。这话没错吧？可患者当场当众高声骂他白吃饭、不办事，整个队伍都听见了。医生全程低头，头都没抬——这是一线窗口的日常，他忍了。",
-    "患者拿完药，本该走了，却折回来对着工位低声嘀咕、言语讥讽。就这几句得理不饶人的抱怨，成了压垮他的最后一根稻草。他猛地起身，当众扯下白大褂狠狠甩在地上，红着眼眶要冲出去对峙。三四名同事死死拽住、劝了近十分钟，才把他拦下来。在场患者纷纷拍照。",
-    "文章里说，这不是一次冲突，是无数次委屈积压后的彻底宣泄。穿上白大褂他是医者、忍辱负重；脱下白大褂他只是个普通人，也会委屈、也会愤怒。可那一扯一甩，他输了体面，也给了别人情绪失控的把柄。",
-    "换成咱们的视角看：这位医生不是脾气差，是情绪账户早就透支了——平时一点一点往里存委屈，从不取出来管理，最后一句小抱怨就引爆。这正好对应你：心不够静、浮躁不安，一点就炸，事后又后悔。下面两招，一招教你提前装好护栏、小火苗别长大，一招教你对自己温柔点、别让自责把火越扇越旺。"
+  {"type":"speak","title":"第一幕 · 新案例：一句气话，丢了工作","rhyme":None,"img":SVG_CASE,"sentences":[
+    "讲个 2026 年刚刷屏的真实事（来源今日头条、腾讯新闻：小李谈涨薪）。小李是个普通打工人，平时干活勤快，就是有个毛病——脾气一点就着，心也常浮。那天他和领导谈涨薪，领导说今年预算紧，先不调。小李一听，脑子里的火噌地上来，嘴比脑子快，当众甩出一句：不涨薪我就不干了！",
+    "领导没吵，只平静地说：这是你说的，公司按制度来。当场让他把这句话写进确认单。小李当时还在气头上，没澄清、没收回，甚至回头跟同事抱怨本来就不想干了。他以为只是句气话，谁上班没说过？",
+    "结果惊掉下巴：公司把他的口头辞职坐实，走合法流程和他解除了劳动合同。小李慌了，跑去仲裁、又打官司，说自己只是发泄情绪、不是真想辞职。可法院判了：口头表达有法律效力，他亲口说的、又没当场否认，辞职有效！一审二审都输，工作丢了，一分赔偿没拿到。",
+    "全网炸锅，无数人替他冤：谁没说过气话，难道都当真？可冷静看——职场不是菜市场，不是发泄情绪的地方。小李的亏，亏在情绪上头时把气话当成了可以随便说的念头，没管住嘴，也没及时澄清。那句不干了，只是他气头上一个念头，不是事实、不是他真想做的。",
+    "换成咱们的视角：小李和你是一样的——心不够静、浮躁、一上头念头乱飞，还把念头当真。如果他当时会两招就好了：先让心静下来（三分钟呼吸空间），再把我不干了看成我有个想不干的念头（认知解离），就不会说出那句毁工作的气话。下面两招，一招让心静，一招让念头和你拉开距离。"
   ]},
 
-  {"type":"quiz","title":"课间提问① · 医生最亏在哪","quiz":{
-    "q":"医生最亏在哪？一句小抱怨，为什么能让他当众崩成那样？",
+  {"type":"quiz","title":"课间提问① · 小李最亏在哪","quiz":{
+    "q":"小李最亏在哪？一句气话，怎么就真成了丢工作的辞职报告？",
     "opts":[
-      {"t":"他情绪账户长期透支——平时委屈只忍不理、从不管理；一句小抱怨只是导火索，真正炸的是积压的火。场面失控还给了别人把柄","ok":True},
-      {"t":"他天生脾气爆、性格差","ok":False},
-      {"t":"是患者太过分，全怪患者","ok":False}
+      {"t":"他情绪上头把气话当随便说的念头，没当场澄清收回，法律上口头表达算数→被认定主动辞职。教训：职场不是发泄情绪的地方，话一出口责任就跟来；上头时先静心、别把念头当真话甩出去","ok":True},
+      {"t":"他天生嘴贱、性格差","ok":False},
+      {"t":"全怪领导心狠","ok":False}
     ],
-    "stu":"小雪：可患者确实嘴欠啊！",
-    "teacher":"晓晓老师点头：患者嘴欠不对，该批评。但咱们能管的只有自己。医生平时每受一次委屈就存进情绪账户不取，账户满了，一句小抱怨就爆。教训是——情绪要日常取出来管理(用前16招)，别等炸了才后悔。这引出今天第一招：提前装护栏，让小火苗刚冒头就被按住。",
-    "card":["医生崩在：委屈长期积压、从不管理，一句小抱怨成导火索；情绪账户透支→一点就炸。","情绪要日常取出管理(前16招)，别等炸了才后悔；这引出提前装护栏。"]
+    "stu":"小雪：可领导也太不近人情了吧！",
+    "teacher":"晓晓老师点头：公司依规办事、不违法，这另说。但咱们能管的只有自己。小李的坑是情绪化表达加事后不作为——气话出口不澄清，就成证据。这正好引出今天两招：先让心静（呼吸空间），再把念头和真话分开（认知解离）。场合是表达观点的地方，不是秀脾气、更不是把气话当真扔出去的地方。",
+    "card":["小李亏在：情绪上头把气话当随便说的念头，没澄清→法律认口头表达→算主动辞职。","职场不是发泄情绪的地方；话一出口责任就来；上头时先静心、别把念头当真话甩出。"]
   }},
 
-  {"type":"speak","title":"第二幕 · 原理：执行意图 + 自我慈悲","rhyme":None,"img":SVG_PRINCIPLE,"sentences":[
-    "为什么提前装护栏比现场硬扛管用？心理学家盖洛韦发现一个秘密：人脑喜欢如果…就…这条自动链路。你提前写好了如果A发生我就做B，现场真遇到A，脑子会自动跳到B，不费意志力。实验里用了如果…就…计划的人，目标达成率高出两三倍。反过来，靠临场喊我要冷静这种空口号，火一上来全忘光。",
-    "所以一点就炸的治本办法，不是等火来了再压，而是提前把火来了怎么办写成剧本，存进脑子。这叫执行意图，英文 if-then 计划。现场一触发，自动执行，不靠你那点快烧完的意志力。",
-    "第二个道理，专治跟自己过不去：神经科学发现，你一骂自己没用、笨，大脑就拉响警报——威胁系统启动，压力荷尔蒙皮质醇往上飙，你更焦虑、更易炸。反过来，对自己温柔一点，自我慈悲，会激活身体的安抚系统，让你平静下来。这跟咱们的心如止水一模一样——对自己狠，心就翻江倒海；对自己好，心才静得下来。",
-    "一句话：现场不炸靠提前写剧本(执行意图)；不跟自己过不去靠对自己温柔(自我慈悲)。道理一→预设护栏法；道理二→自我慈悲法。"
+  {"type":"speak","title":"第二幕 · 原理：正念 + 认知解离","rhyme":None,"img":SVG_PRINCIPLE,"sentences":[
+    "为什么让心静和和念头拉开距离这么管用？先讲两个科学道理。道理一：正念。心理学家卡巴金说，正念就是对当下不加评判的觉察。你浮躁、心不静时，越想快静下来越乱；正念教你不评判地看着它——像看湖面起风，风会自己停。研究证明，每天几分钟正念练习，大脑负责平静的区域会变厚。这引出第十九招：三分钟呼吸空间。",
+    "道理二：认知解离（接纳承诺疗法 ACT 的核心）。你的大脑会自动蹦出很多念头——我不行、我不干了、我太差了。但这些念头只是念头，不是事实，更不是命令。你不是你的念头。神经科学发现，当你和念头解离（只观察不认同），大脑里管把念头当真的区域就安静了，你不再被它牵着跑。",
+    "一句话：心不静，靠把注意轻轻放到呼吸上（正念呼吸空间）；被念头带跑，靠把念头看成天上的云、不追不赶（认知解离）。道理一→三分钟呼吸空间；道理二→认知解离法。这两招，正好把你最愁的两件事接住。"
   ]},
 
-  {"type":"quiz","title":"课间提问② · 为什么预设护栏比喊冷静管用","quiz":{
-    "q":"为什么如果火起我就退后这种提前写好的护栏，比火来了再喊我要冷静管用？",
+  {"type":"quiz","title":"课间提问② · 为什么呼吸空间比硬压管用","quiz":{
+    "q":"为什么三分钟呼吸空间（把注意放呼吸）比硬命令自己别浮躁、快静下来管用？",
     "opts":[
-      {"t":"人脑认如果…就…自动链路：提前写好，现场触发自动执行、不费意志力；空喊要冷静火一上来就忘。这是执行意图","ok":True},
-      {"t":"因为喊要冷静声音不够大","ok":False},
-      {"t":"因为退后跑得快","ok":False}
+      {"t":"硬压像把皮球按水里，松手更弹；正念是不评判地觉察，呼吸是锚把飘走的心拉回当下，像风过湖面自然静。这是大脑可训练的机制，练几次就灵","ok":True},
+      {"t":"因为呼吸能多吸氧气","ok":False},
+      {"t":"因为硬压太累","ok":False}
     ],
-    "stu":"小杰：那我火都上来了，退后不显得怂吗？",
-    "teacher":"晓晓老师笑：退后是聪明，不是怂。你退一步，物理距离一拉，火就少一口氧气；等理智脑回来再开口，说的是观点不是脾气——这正合场合是表达观点的地方。而且这是你提前写好的剧本，执行起来毫不费力，比硬扛体面多了。",
-    "card":["执行意图：提前写如果…就…，现场自动执行、不费意志力；空喊要冷静火来就忘。","退后是聪明不是怂：拉距离=给火断氧，回来只说观点。"]
+    "stu":"小杰：那我烦的时候只想刷手机，哪静得下来？",
+    "teacher":"晓晓老师笑：所以才要短——只三分钟，比刷手机省事。你越烦越刷，心越飘；反过来，把手机扔远，闭眼数三次呼吸，心就落回身体里了。呼吸空间不是让你变神仙，是给浮躁一个歇脚处。练上几天，一浮躁你身体会自动想呼吸，比硬压温柔多了。",
+    "card":["正念不评判地觉察，呼吸是锚把飘走的心拉回当下；硬压像按皮球，松手更弹。","只三分钟：越烦越刷心越飘，闭眼数呼吸，心落回身体；练几天身体会自动想呼吸。"]
   }},
 
-  {"type":"speak","title":"第三幕 · 新招17：预设护栏法（执行意图 if-then）","rhyme":{
-    "title":"🎵 预设护栏口诀",
-    "lines":["<b>如果火起我就退</b>，<b>如果坐定就开钟</b>；","<b>提前写进脑子里</b>，<b>现场不靠意志力</b>。"]
-  },"img":SVG_GUARD,"sentences":[
-    "新本领第十七招：预设护栏法（执行意图 if-then）。一句话——把遇到刺激我怎么办提前写成如果…就…剧本，存进脑子，现场自动执行，不靠意志力。三步：",
-    "第一步列触发：想清楚最容易让你炸、最容易让你摸手机的场景。比如：同事甩脸、被当众说、坐到工位想摸手机、收到难听话。把这几条写下来，存手机置顶。",
-    "第二步写护栏：给每条触发配一个就动作——如果同事甩脸，我就先退后一步喝口水；如果坐到工位，我就先开25分钟番茄钟、手机扔抽屉；如果火冒三丈，我就闭嘴数六。动作要具体、能马上做。",
-    "第三步练成自动：每天上班前扫一眼这条清单，像过安检。练几次，现场一遇到，身体自动就做了——你甚至不用想。这招对一点就炸和浮躁坐不住想摸机都管用。",
-    "记住：别等火来了硬扛，提前把剧本写好。像给心装了一道护栏，小火苗刚冒头就被挡在门外。这招直接呼应核心理念——场合是表达观点的地方，你用护栏保住理智，说出来的才是观点不是脾气。",
-    "记口诀：如果火起我就退，如果坐定就开钟；提前写进脑子里，现场不靠意志力。"
+  {"type":"speak","title":"第三幕 · 新招19：三分钟呼吸空间（正念 MBSR）","rhyme":{
+    "title":"🎵 呼吸空间口诀",
+    "lines":["<b>一觉浮躁二回呼吸</b>，<b>三带觉知做手里事</b>；","<b>心像湖面风过自静</b>，<b>正念三分钟就平息</b>。"]
+  },"img":SVG_BREATH,"sentences":[
+    "新本领第十九招：三分钟呼吸空间（正念 MBSR）。一句话——心浮躁、坐不住、火往上冒时，用三分钟，把飘走的注意轻轻拉回呼吸，心就静了。三步：",
+    "第一步觉察：先问自己我现在怎么了？是浮躁？是生气？是走神？把注意力转向内在，给情绪起个名——我在浮躁。别评判它好坏，看见就好。这步约一分钟。",
+    "第二步集中：把全部注意放到呼吸上。吸气，数一；呼气，数一；吸气，数二……只跟呼吸走，脑子跑偏了就轻轻拉回来。呼吸是锚，把乱飘的心拴回当下。这步约一分多钟。",
+    "第三步扩展：带着这份看见了、静了一点的觉知，慢慢睁开眼，回到手头的事——写字、回消息、听会。心像湖面，风过了自然平。整个过程就三分钟，比发呆刷手机值。",
+    "记住：不是硬压浮躁，是温柔地看见它、用呼吸把它接住。这招和静音模式是搭档——水杯爱晃，就用呼吸把水稳一稳。场合里心一浮，先三步呼吸，再说观点。",
+    "记口诀：一觉浮躁二回呼吸，三带觉知做手里事；心像湖面风过自静，正念三分钟就平息。"
   ]},
 
-  {"type":"quiz","title":"课间提问③ · 预设护栏怎么用","quiz":{
-    "q":"周一晨会，领导当众皱眉说这方案不行，你脸一热、手就伸向手机想摸。按预设护栏法，你该提前写好哪条如果…就…？",
+  {"type":"quiz","title":"课间提问③ · 呼吸空间怎么用","quiz":{
+    "q":"晨会被当众说这方案不行，你脸一热、心浮、手伸向手机。按三分钟呼吸空间，你该怎么做？",
     "opts":[
-      {"t":"如果领导皱眉说我，我就先退后一步、深呼吸、用我信息问清标准；如果坐到工位想摸机，我就先开番茄钟手机扔远——提前写进脑子，现场自动做","ok":True},
-      {"t":"如果领导皱眉，我就当场怼回去","ok":False},
-      {"t":"如果手伸向手机，就刷半小时放松","ok":False}
+      {"t":"先觉察我在浮躁、在被说难受→把手机扔远、闭眼把注意放呼吸(吸数呼数,跑偏就拉回)约一分多钟→带着静一点的觉知睁开眼,用我信息只说观点问清标准。先静心再说,不甩气话","ok":True},
+      {"t":"立刻回怼你行你上","ok":False},
+      {"t":"马上刷手机压惊(越刷心越飘)","ok":False}
     ],
-    "stu":"小琳：我怕写好了到时候还是摸。",
-    "teacher":"晓晓老师点头：所以才要练成自动——每天上班前扫一遍清单，像肌肉记忆。刚开始可能还会摸，但护栏会一次次把你拦回来；练上十天半月，手伸出去自己就停了。关键是提前写、天天练，别指望火来了才现想。",
-    "card":["预设护栏：①列触发(甩脸/坐工位想摸机)②写就动作(退后喝水/开番茄手机扔远)③练成自动。","提前写+天天练成肌肉记忆；别等火来现想。"]
+    "stu":"小琳：开会没地方闭眼啊，同事看见多尬。",
+    "teacher":"晓晓老师笑：不一定要闭眼——盯着手里笔、感受笔的凉，或者看窗外一片叶子，把注意放一个具体的东西加呼吸上，一样是锚。哪怕只三十秒的深呼吸，也能把火降半截。关键是先觉知、再回呼吸、后开口，不是非得盘腿打坐。",
+    "card":["三分钟呼吸空间：①觉察(我在浮躁)②集中(注意放呼吸,跑偏拉回)③扩展(带觉知回做事)。","不一定要闭眼：盯笔/看叶+呼吸一样是锚；先觉知再呼吸后开口，不甩气话。"]
   }},
 
-  {"type":"speak","title":"第四幕 · 新招18：自我慈悲法（对自己温柔）","rhyme":{
-    "title":"🎵 自我慈悲口诀",
-    "lines":["<b>出错不是我一个</b>，<b>拍拍胸口对自己好</b>；","<b>不骂自己不焦灼</b>，<b>心如止水静悄悄</b>。"]
-  },"img":SVG_SELF,"sentences":[
-    "新本领第十八招：自我慈悲法（对自己温柔）。一句话——出错、浮躁、被说时，别骂自己，像安慰好朋友一样安慰自己。三步：",
-    "第一步觉察：发现自己又在骂自己怎么这么没用、怎么又浮躁时，先喊停，看见这个念头。你不是没用的人，你只是此刻有点乱。",
-    "第二步共通人性：提醒自己人人都会出错、人人都会浮躁，这不只我一个。你看那医生、看热搜上发飙的人，谁没崩过？你不是怪胎。",
-    "第三步善待自己：把手放胸口，对自己说一句温柔的话——辛苦了，慢慢来，我可以的。这一句像给心打镇静剂，催你平静下来，而不是越骂越炸。所谓心如止水，是先对自己止争。",
-    "记住：你对自己狠，心就翻江倒海，越急越乱；你对自己好，心才静得下来。浮躁不是你差，是心累了；拍拍它，继续走。这招和情绪命名是搭档——先给情绪起名，再对它慈悲。",
-    "记口诀：出错不是我一个，拍拍胸口对自己好；不骂自己不焦灼，心如止水静悄悄。"
+  {"type":"speak","title":"第四幕 · 新招20：认知解离法（念头不是事实）","rhyme":{
+    "title":"🎵 认知解离口诀",
+    "lines":["<b>念头不是我</b>，<b>加个前缀看云飘</b>；","<b>它说它说由它说</b>，<b>我干我的不逃跑</b>。"]
+  },"img":SVG_DEFUSE,"sentences":[
+    "新本领第二十招：认知解离法（念头不是事实）。一句话——脑子里冒出我不行、我不干了、我真没用时，别把它当真、别被它牵着走，给念头加个前缀，把它看成天上的云。三步：",
+    "第一步加标签：当那个念头冒出来，在前面轻轻加一句——我注意到，我正在想：我不行了，或者有个念头飘过来说：我不干了。就这么加个前缀，你和念头之间就多了一道缝，它不再是你，只是你脑子里的广播。",
+    "第二步看云：把念头当成天上飘的云、路上过的车——你看见它，但不追它、不赶它、不和它吵架。它爱飘就飘，你站在地上看。念头会自己变淡、飘走，你不用使劲甩。",
+    "第三步选动作：念头只是念头，不是命令。问自己一句：带着这个念头，我下一步做什么有用的事？然后该写报告写报告、该回消息回消息——念头在旁边嘟囔，你照样干活。你不是被念头绑架的人，你是听得到广播、还能自己走路的人。",
+    "记住：你不是你的念头。小李那句不干了要是加了前缀变成我注意到我正在想：不干了，他就知道那只是气头上的广播，不会当真甩出去。这招和认知重评是搭档——重评是换掉念头，解离是先退后看清楚念头不是你。",
+    "记口诀：念头不是我，加个前缀看云飘；它说它说由它说，我干我的不逃跑。"
   ]},
 
-  {"type":"quiz","title":"课间提问④ · 自我慈悲怎么用","quiz":{
-    "q":"周报写岔了被领导点名，你当场在心里骂自己废物怎么又搞砸，越想越急躁、手抖。按自我慈悲法，你该做啥？",
+  {"type":"quiz","title":"课间提问④ · 认知解离怎么用","quiz":{
+    "q":"周报写岔被点名，你脑子里蹦出我真没用，完了。按认知解离法，你该怎么做才不被它带跑？",
     "opts":[
-      {"t":"先觉察我在骂自己→共通人性人人都会出错不全是我→手放胸口对自己说慢慢来我可以，用安抚代替自责，心静下来再改","ok":True},
-      {"t":"继续骂自己，骂醒了就能改好","ok":False},
-      {"t":"假装没事，硬撑","ok":False}
+      {"t":"先加标签我注意到我正在想：我真没用→把念头当云看,不追不赶→问带着这念头我下一步干啥有用,照样改周报。念头是广播不是命令,不甩狠话不内耗","ok":True},
+      {"t":"相信它我真没用,当场崩溃","ok":False},
+      {"t":"骂自己别想了,硬塞回去(越塞越弹)","ok":False}
     ],
-    "stu":"小强：可我真的总出错，不骂记不住啊。",
-    "teacher":"晓晓老师摇头：骂自己只会让皮质醇飙升、更焦虑更炸，反而改不好。研究说，自我慈悲的人犯错后恢复更快、更愿意改。你越温柔对待出错的自己，越有劲儿去改。先安抚，再改活——顺序别反。",
-    "card":["自我慈悲三步：①觉察(我在骂自己)②共通人性(人人会错不全我)③善待(手放胸口说慢慢来)。","自责→皮质醇↑更炸；慈悲→安抚系统→更快改好。先安抚再改活。"]
+    "stu":"小强：可那念头太真了，我不信它是假的。",
+    "teacher":"晓晓老师点头：你不用相信它是假的，也不用消灭它。解离不是念头是错的，是念头≠我、≠事实、≠必须照做。你只做一件事：加前缀、看它飘、照样干活。练几次你会发现，念头还在嘟囔，但你已经改完周报了——它没指挥了你。这正合场合是表达观点的地方：你说的是观点，不是念头的吼叫。",
+    "card":["认知解离：①加标签(我注意到我正在想…)②看云(不追不赶)③选动作(带念头照样干活)。","解离不是消灭念头,是念头≠我≠事实≠命令；加前缀看它飘,照样干事。"]
   }},
 
-  {"type":"speak","title":"结尾 · 今天你带走什么（前16招+两新招）","rhyme":None,"img":None,"sentences":[
+  {"type":"speak","title":"结尾 · 今天你带走什么（前18招+两新招）","rhyme":None,"img":None,"sentences":[
     "今天的课到这儿，晓晓老师带你总复习。",
-    "前16招（复习）：五步刹车——一停二数三命名四转五说；静音模式——心是一杯水；五感着陆——看五摸四听三声；番茄专注——二十五分只做一事；认知重评——停揪换、换想法就换情绪；方箱呼吸——吸4憋7呼8憋4；第三人称抽离——退后换角劝友；冲动冲浪——认浪看浪等浪退；情绪命名法——精准起名温度计打分说写下来；10-10-10透视法——10分10月10年后拉远看；身体急停法——离开冷水握拳脚踩地；我信息表达法——事实感受需要请求只说观点；六秒法则——火冒三丈先闭嘴数六等理智脑；记账本——睡前三栏触发念头新招；课题分离法——别人课题我不扛；两分钟启动法——大活先拆只做两分。",
-    "新本领①：预设护栏法——把遇到刺激怎么办写成如果…就…剧本提前存脑子，现场自动执行不靠意志；遇火退后、坐定开钟不摸机。新本领②：自我慈悲法——出错浮躁别骂自己，觉察、共通人性、手放胸口善待自己，心如止水先对自己止争。",
-    "一句话收尾：场合不是秀脾气的地方，只是说观点的地方；提前装好护栏、现场不炸，对自己温柔、心如止水，你会越来越稳。下课！"
+    "前18招（复习）：五步刹车——一停二数三命名四转五说；静音模式——心是一杯水；五感着陆——看五摸四听三声；番茄专注——二十五分只做一事；认知重评——停揪换、换想法就换情绪；方箱呼吸——吸4憋7呼8憋4；第三人称抽离——退后换角劝友；冲动冲浪——认浪看浪等浪退；情绪命名法——精准起名温度计打分说写下来；10-10-10透视法——10分10月10年后拉远看；身体急停法——离开冷水握拳脚踩地；我信息表达法——事实感受需要请求只说观点；六秒法则——火冒三丈先闭嘴数六等理智脑；记账本——睡前三栏触发念头新招；课题分离法——别人课题我不扛；两分钟启动法——大活先拆只做两分；预设护栏法——如果火起就退；自我慈悲法——对自己好。",
+    "新本领①：三分钟呼吸空间——心浮火冒时，觉察→集中呼吸→扩展觉知，风过湖面心自静，专治心不够静浮躁不安。新本领②：认知解离法——念头冒出加前缀我注意到我正在想，当云看、不追不赶，照样干活，专治被念头带跑、自我攻击。",
+    "一句话收尾：场合不是秀脾气、更不是把气话当真扔出去的地方，只是说观点的地方；心浮时先三分钟呼吸静一静，念头乱时加前缀看它飘，你会越来越稳。下课！"
   ]},
 
   {"type":"feynman","title":"费曼小测 · 讲给晓晓老师听","text":
-    "费曼学习法说：你以为你懂了，不算懂；能用自己的话讲明白，才是真懂。\n\n现在轮到你啦——请用你自己的话，把下面这道题讲给晓晓老师听：\n\n如果下次我又被一句难听话点着、火一下窜上来，或者一坐到工位就忍不住摸手机、还因为写岔了活儿在心里骂自己没用，我会怎么做，才能既不当场炸、又能管住浮躁、还不对自已太狠、把该干的活干好？\n\n提示：可以结合旧本领（五步刹车、静音模式、五感着陆、番茄专注、认知重评、方箱呼吸、第三人称抽离、冲动冲浪、情绪命名法、10-10-10 透视法、身体急停法、我信息表达法、六秒法则、情绪记账本、课题分离法、两分钟启动法）和新本领（预设护栏法、自我慈悲法）一起说。\n\n在下面的框里写几句（或对着麦克风讲出来也行）。写完了，翻回上面的口诀卡对照一下，看看漏了哪一步。"
+    "费曼学习法说：你以为你懂了，不算懂；能用自己的话讲明白，才是真懂。\n\n现在轮到你啦——请用你自己的话，把下面这道题讲给晓晓老师听：\n\n如果下次我又被一句难听话点着、心浮坐不住、脑子里还冒出我不行了、我不干了的念头，我会怎么做，才能既不当场炸、又能管住浮躁、又不被念头带跑、把该干的活干好？\n\n提示：可以结合旧本领（五步刹车、静音模式、五感着陆、番茄专注、认知重评、方箱呼吸、第三人称抽离、冲动冲浪、情绪命名法、10-10-10 透视法、身体急停法、我信息表达法、六秒法则、情绪记账本、课题分离法、两分钟启动法、预设护栏法、自我慈悲法）和新本领（三分钟呼吸空间、认知解离法）一起说。\n\n在下面的框里写几句（或对着麦克风讲出来也行）。写完了，翻回上面的口诀卡对照一下，看看漏了哪一步。"
   }
 ]
 
@@ -371,7 +336,7 @@ HTML = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>晓晓老师的情绪管理课 · 第10天：提前装护栏、对自己温柔——场合不是秀脾气，只是说观点</title>
+<title>晓晓老师的情绪管理课 · 第11天：让心静下来、和念头拉开距离——场合不是秀脾气，只是说观点</title>
 <style>
   :root{
     --bg:#f4f7fb; --card:#ffffff; --ink:#243447; --soft:#6b7c8f;
@@ -484,8 +449,8 @@ HTML = r"""<!DOCTYPE html>
       <circle cx="44" cy="30" r="3" fill="#ffb3c8" opacity=".7"/>
     </svg>
   </div>
-  <h1>晓晓老师的情绪管理课 · 第10天</h1>
-  <p>提前装护栏不炸、对自己温柔心静：场合不是秀脾气的地方，只是说观点的地方 🧊</p>
+  <h1>晓晓老师的情绪管理课 · 第11天</h1>
+  <p>三分钟呼吸空间让心静、认知解离让念头不牵你走：场合不是秀脾气的地方，只是说观点的地方 🧘</p>
   <span class="badge">🌟 晓晓老师 · 神经网络语音讲解（XiaoxiaoNeural）</span>
 </header>
 
@@ -705,7 +670,7 @@ function showFeedback(card,ok,q,starCount){
 function renderFeynman(s){
   const card=document.createElement('div'); card.className='card';
   card.innerHTML='<h2>'+s.title+'</h2><div class="scene-text">'+s.text+'</div>'+
-    '<textarea id="fm" placeholder="在这里用你自己的话写一写（比如：他一句难听话是触发，我提前写好如果火起就退后、坐定就开番茄钟；出错时我觉察自责、手放胸口说慢慢来，先安抚再改活…）…"></textarea>'+
+    '<textarea id="fm" placeholder="在这里用你自己的话写一写（比如：他一句难听话是触发，我先三分钟呼吸让心静，再给我不行了加前缀看成广播，照样改周报…）…"></textarea>'+
     '<div class="controls"><button class="btn" id="speakBtn">🎤 朗读我的回答</button>'+
     '<button class="btn good" id="finishBtn">完成本节课 ✅</button></div>';
   stage.appendChild(card);
@@ -724,18 +689,18 @@ function finish(){
     '<p style="font-size:18pt">今天你拿到了 <b style="color:#d98324">'+stars+'</b> 颗星星 ⭐</p>'+
     '<div class="rhyme" style="text-align:left; display:inline-block; margin:10px auto;">'+
     '<b>🎵 今日新口诀（两新招）</b><br>'+
-    '如果火起我就退，如果坐定就开钟；提前写进脑子里，现场不靠意志力。<br><br>'+
-    '出错不是我一个，拍拍胸口对自己好；不骂自己不焦灼，心如止水静悄悄。<br><br>'+
-    '<b>前16招回顾：</b>见本页上方「复习 · 十六招技能地图」卡片（五步刹车/静音/五感着陆/番茄/认知重评/方箱呼吸/第三人称抽离/冲动冲浪/情绪命名/10-10-10/身体急停/我信息/六秒法则/记账本/课题分离/两分钟启动）。'+
-    '</div><p style="color:var(--soft)">记住：场合不是秀脾气的地方，只是说观点的地方；提前装好护栏、现场不炸，对自己温柔、心如止水，你会越来越稳。</p>'+
+    '一觉浮躁二回呼吸，三带觉知做手里事；心像湖面风过自静，正念三分钟就平息。<br><br>'+
+    '念头不是我，加个前缀看云飘；它说它说由它说，我干我的不逃跑。<br><br>'+
+    '<b>前18招回顾：</b>见本页上方「复习 · 十八招技能地图」卡片（五步刹车/静音/五感着陆/番茄/认知重评/方箱呼吸/第三人称抽离/冲动冲浪/情绪命名/10-10-10/身体急停/我信息/六秒法则/记账本/课题分离/两分钟启动/预设护栏/自我慈悲）。'+
+    '</div><p style="color:var(--soft)">记住：场合不是秀脾气、更不是把气话当真扔出去的地方，只是说观点的地方；心浮时先三分钟呼吸静一静，念头乱时加前缀看它飘，你会越来越稳。</p>'+
     '<div class="controls" style="justify-content:center"><button class="btn" onclick="location.reload()">🔁 再上一遍</button></div></div>';
   setSub('—— 今天的课结束啦，记得常回来练 ——');
 }
 
 (function(){
   const intro=document.createElement('div'); intro.className='card';
-  intro.innerHTML='<h2>👋 准备好了吗？（第10天）</h2>'+
-    '<div class="scene-text">这堂课大概 10 分钟。先带你复习前16招（五步刹车、静音模式、五感着陆、番茄专注、认知重评、方箱呼吸、第三人称抽离、冲动冲浪、情绪命名法、10-10-10 透视法、身体急停法、我信息表达法、六秒法则、情绪记账本、课题分离法、两分钟启动法），再讲一个新案例（2026-05-21 网易：药房男医生被一句小抱怨点着、当众扯白大褂要冲、同事死死拽住）和两招新本领（预设护栏法、自我慈悲法）。\n\n'+
+  intro.innerHTML='<h2>👋 准备好了吗？（第11天）</h2>'+
+    '<div class="scene-text">这堂课大概 10 分钟。先带你复习前18招（五步刹车、静音模式、五感着陆、番茄专注、认知重评、方箱呼吸、第三人称抽离、冲动冲浪、情绪命名法、10-10-10 透视法、身体急停法、我信息表达法、六秒法则、情绪记账本、课题分离法、两分钟启动法、预设护栏法、自我慈悲法），再讲一个新案例（2026 真实热点：小李谈涨薪被拒、气头上甩"不干了"，被法院认定口头辞职有效、丢掉工作无赔偿）和两招新本领（三分钟呼吸空间、认知解离法）。\n\n'+
     '晓晓老师会用神经网络语音一段一段讲，字幕在底部（不挡讲解）；讲到中间会突然提问你、还会模拟同学抢答，最后让你用自己的话讲一遍（费曼记忆法）。\n\n'+
     '建议戴上耳机，点下面「开始上课」就出发吧～</div>'+
     '<div class="controls"><button class="btn" id="startBtn">▶ 开始上课</button>'+
@@ -757,11 +722,11 @@ function finish(){
 # ---------------------------------------------------------------- markdown 笔记
 def build_markdown():
     L = []
-    L.append("# 情绪管理课 · 晓晓老师课堂笔记（第10天 · ima 知识库 imao）\n")
+    L.append("# 情绪管理课 · 晓晓老师课堂笔记（第11天 · ima 知识库 imao）\n")
     L.append("> 主题：克服专注力差、浮躁易怒、情绪化。核心理念：**场合不是展示真性情的地方，只是表达观点的地方。**\n")
-    L.append("> 配套互动网页：`emotion-class-20260723.html`（晓晓老师 XiaoxiaoNeural 神经网络语音 + 不挡字幕 + 上一句/下一句可调位置 + 费曼式定时提问）。\n")
-    L.append("> 第10天结构：**复习**前16招(五步刹车+静音+五感着陆+番茄+认知重评+方箱呼吸+第三人称抽离+冲动冲浪+情绪命名+10-10-10+身体急停+我信息+六秒法则+记账本+课题分离+两分钟启动) → **新案例**(2026-05-21 网易：药房男医生被一句小抱怨点着、当众扯白大褂要冲、同事死死拽住) → **原理**(执行意图 if-then + 自我慈悲安抚系统) → **新招17**预设护栏法(列触发/写护栏/练自动) → **新招18**自我慈悲法(觉察/共通人性/善待自己) → 费曼自测。\n")
-    L.append("\n## 一、复习：前16招（情绪技能地图）\n")
+    L.append("> 配套互动网页：`emotion-class-20260724.html`（晓晓老师 XiaoxiaoNeural 神经网络语音 + 不挡字幕 + 上一句/下一句可调位置 + 费曼式定时提问）。\n")
+    L.append("> 第11天结构：**复习**前18招(五步刹车+静音+五感着陆+番茄+认知重评+方箱呼吸+第三人称抽离+冲动冲浪+情绪命名+10-10-10+身体急停+我信息+六秒法则+记账本+课题分离+两分钟启动+预设护栏+自我慈悲) → **新案例**(2026 今日头条/腾讯新闻：小李谈涨薪被拒、气头上甩“不干了”、被法院认定口头辞职有效丢掉工作) → **原理**(正念觉察+认知解离 ACT) → **新招19**三分钟呼吸空间(觉察/集中呼吸/扩展) → **新招20**认知解离法(加标签/看云/选动作) → 费曼自测。\n")  # noqa
+    L.append("\n## 一、复习：前18招（情绪技能地图）\n")
     L.append("- **①五步刹车法**：一停、二数、三命名、四转、五说——火气冒头先喊停，只说观点不秀脾气。\n")
     L.append("- **②静音模式（心如止水）**：心是一杯水，安静清、摇晃浑；场合里拍桌水洒难收，有火不泼别人。\n")
     L.append("- **③五感着陆法（54321）**：看五摸四听三声，闻二尝一拉回神；走神、坐不住时把心拉回当下。\n")
@@ -778,42 +743,45 @@ def build_markdown():
     L.append("- **⑭情绪记账本**：睡前三栏触发/念头/新招，天天记、天天安；情绪过去就复盘不重犯。\n")
     L.append("- **⑮课题分离法（阿德勒）**：同事甩脸是别人的课题、后果他们担；我的活儿我写好，别人的题我不扛。\n")
     L.append("- **⑯两分钟启动法**：大活先拆小步、只做两分不贪多，手指一动心就静；启动效应让浮躁散。\n")
-    L.append("- 这十六招管“快炸/走神/不专注/念头歪/手抖想怼/上头那一秒/心里乱/一点就炸/身体先炸/想回嘴/情绪过去就忘/替别人内耗/大活不动手”。今天两招管最前面的“一点就炸（现场不炸）”和“跟自己过不去（不自我攻击）”。\n")
-    L.append("\n## 二、今日新案例（2026-05-21 网易，医院药房窗口，人物化名）\n")
-    L.append("素材：一位男医生，在药房窗口配药多年，平时话少、干活稳，最擅长“忍”。一名男患者来取特慢病药、没带身份证，按规定必须核验身份；医生照规矩说“系统过不了，您回家取证件再来”——这话没错。可患者当场当众高声骂他“白吃饭、不办事”，整个队伍都听见，医生低头忍了。患者拿完药折回来，对着工位低声嘀咕、言语讥讽。就这几句得理不饶人的抱怨，成了压垮他的最后一根稻草：他猛地起身，当众扯下白大褂狠狠甩在地上，红着眼眶要冲出去对峙，三四名同事死死拽住、劝了近十分钟才拦下，在场患者纷纷拍照。\n")
-    L.append("- 关键解读（文内视角）：这不是一次冲突，是无数次委屈积压后的彻底宣泄。穿上白大褂他是医者、忍辱负重；脱下白大褂他只是个普通人，也会委屈、也会愤怒。可那一扯一甩，他输了体面，也给了别人“情绪失控”的把柄。\n")
-    L.append("- 初中生版启示：这位医生不是脾气差，是“情绪账户”长期透支——平时一点一点往里存委屈、从不取出来管理，最后一句小抱怨就引爆（一点就炸、事后又后悔）。教训：情绪要日常“取出来”管理（用前16招），别等炸了才后悔。这正好对应你：心不够静、浮躁不安，一点就炸。\n")
-    L.append("\n## 三、原理：两个道理（执行意图 if-then + 自我慈悲安抚系统）\n")
-    L.append("- **道理一 执行意图（if-then 计划，心理学家盖洛韦）**：人脑喜欢“如果…就…”这条自动链路。你提前写好了“如果A发生，我就做B”，现场真遇到A，脑子会自动跳到B，不费意志力。实验里用了 if-then 计划的人，目标达成率高出两三倍。反过来，靠临场喊“我要冷静”这种空口号，火一上来全忘光。所以“一点就炸”的治本办法，不是等火来了再压，而是提前把“火来了怎么办”写成剧本存进脑子——现场触发自动执行，不靠快烧完的意志力。\n")
-    L.append("- **道理二 自我慈悲（对自己温柔，神经科学）**：你一骂自己“没用、笨”，大脑就拉响警报——威胁系统启动，压力荷尔蒙皮质醇往上飙，你更焦虑、更易炸。反过来，对自己温柔一点（自我慈悲），会激活身体的“安抚系统”，让你平静下来。这跟“心如止水”一模一样——对自己狠，心就翻江倒海；对自己好，心才静得下来。所谓心如止水，是先对自己止争。\n")
-    L.append("- 一句话：现场不炸靠“提前写剧本”（执行意图）；不跟自己过不去靠“对自己温柔”（自我慈悲）。道理一→预设护栏法；道理二→自我慈悲法。\n")
-    L.append("\n## 四、新招17：预设护栏法（执行意图 if-then，提前装护栏、现场不炸）\n")
-    L.append("适用：一遇上刺激就火冒三丈、控制不住脾气；或一坐到工位就忍不住摸手机、浮躁坐不住。一句话——把“遇到刺激我怎么办”提前写成“如果…就…”剧本，存进脑子，现场自动执行，不靠意志力。三步：\n")
-    L.append("- **①列触发**：想清楚最容易让你炸、最容易让你摸手机的场景（同事甩脸、被当众说、坐到工位想摸手机、收到难听话），写下来存手机置顶。\n")
-    L.append("- **②写护栏**：给每条触发配一个“就”动作（要具体、能马上做）——如果同事甩脸，我就先退后一步喝口水；如果坐到工位，我就先开25分钟番茄钟、手机扔抽屉；如果火冒三丈，我就闭嘴数六。\n")
-    L.append("- **③练成自动**：每天上班前扫一眼这条清单，像过安检。练几次，现场一遇到，身体自动就做了——你甚至不用想。对“一点就炸”和“浮躁坐不住想摸机”都管用。\n")
-    L.append("- 要点：别等火来了硬扛，提前把剧本写好，像给心装一道护栏，小火苗刚冒头就被挡在门外。这招直接呼应核心理念——场合是表达观点的地方，你用护栏保住理智，说出来的才是观点不是脾气。退后是聪明不是怂：拉距离=给火断氧，回来只说观点。\n")
-    L.append("\n**预设护栏口诀**\n")
-    L.append("> 如果火起我就退，如果坐定就开钟；提前写进脑子里，现场不靠意志力。\n")
-    L.append("\n## 五、新招18：自我慈悲法（对自己温柔，不自我攻击）\n")
-    L.append("适用：一出错/浮躁/被说就骂自己“没用、怎么又搞砸”，越骂越急躁越乱。一句话——出错、浮躁、被说时，别骂自己，像安慰好朋友一样安慰自己。三步：\n")
-    L.append("- **①觉察**：发现自己又在骂自己时，先喊停、看见这个念头。你不是“没用的人”，你只是“此刻有点乱”。\n")
-    L.append("- **②共通人性**：提醒自己“人人都会出错、人人都会浮躁，这不只我一个”。谁没崩过？你不是怪胎。\n")
-    L.append("- **③善待自己**：把手放胸口，对自己说一句温柔的话——“辛苦了，慢慢来，我可以的”。这一句像给心打镇静剂，催你平静，而不是越骂越炸。先安抚，再改活（顺序别反）。\n")
-    L.append("- 要点：你对自己狠，心就翻江倒海、越急越乱；你对自己好，心才静得下来。浮躁不是你差，是心累了；拍拍它，继续走。这招和情绪命名是搭档——先给情绪起名，再对它慈悲。研究说，自我慈悲的人犯错后恢复更快、更愿意改。\n")
-    L.append("\n**自我慈悲口诀**\n")
-    L.append("> 出错不是我一个，拍拍胸口对自己好；不骂自己不焦灼，心如止水静悄悄。\n")
+    L.append("- **⑰预设护栏法（执行意图 if-then）**：如果火起就退后、坐定就开番茄钟；提前写进脑子、现场自动执行不靠意志。\n")
+    L.append("- **⑱自我慈悲法（对自己温柔）**：出错浮躁别骂自己，觉察、共通人性、手放胸口善待自己；自责→皮质醇↑更炸，慈悲→安抚系统。\n")
+    L.append("- 这十八招管“快炸/走神/不专注/念头歪/手抖想怼/上头那一秒/心里乱/一点就炸/身体先炸/想回嘴/情绪过去就忘/替别人内耗/大活不动手/跟自己过不去”。今天两招管最前面的“心不够静浮躁”和“被念头带跑自我攻击”。\n")
+    L.append("\n## 二、今日新案例（2026 真实热点，来源今日头条/腾讯新闻，人物化名）\n")
+    L.append("素材：小李是个普通打工人，平时干活勤快，但脾气一点就着、心常浮。那天他和领导谈涨薪，领导说“今年预算紧、先不调”。小李脑子里的火“噌”地上来，嘴比脑子快，当众甩出一句：“不涨薪我就不干了！”领导没吵，只平静地说“这是你说的，公司按制度来”，当场让他把这句话写进确认单。小李还在气头上，没澄清、没收回，甚至回头跟同事抱怨“本来就不想干了”。\n")
+    L.append("结果惊掉下巴：公司把他的“口头辞职”坐实，走合法流程解除劳动合同。小李跑去仲裁、打官司，说自己只是发泄情绪、不是真想辞职。可法院判了：口头表达有法律效力，他亲口说的、又没当场否认，辞职有效！一审二审都输，工作丢了，一分赔偿没拿到。全网炸锅，无数人替他冤：“谁没说过气话，难道都当真？”\n")
+    L.append("- 关键解读：职场不是菜市场，不是发泄情绪的地方。小李的亏，亏在情绪上头时把“气话”当成了可以随便说的念头，没管住嘴、也没及时澄清。那句“不干了”，只是他气头上一个念头，不是事实、不是他真想做的。话一出口，责任就跟着来。\n")
+    L.append("- 初中生版启示：小李和你是一样的——心不够静、浮躁、一上头念头乱飞，还把念头当真。如果他当时会两招：先让心静下来（三分钟呼吸空间），再把“我不干了”看成“我有个想不干的念头”（认知解离），就不会说出那句毁工作的气话。这正好对应你：心不够静、浮躁、被念头带跑。\n")
+    L.append("\n## 三、原理：两个道理（正念觉察 + 认知解离 ACT）\n")
+    L.append("- **道理一 正念觉察（卡巴金）**：正念就是“对当下不加评判的觉察”。你浮躁、心不静时，越想“快静下来”越乱；正念教你不评判地看着它——像看湖面起风，风会自己停。研究证明，每天几分钟正念练习，大脑负责平静的区域会变厚。硬压浮躁像把皮球按水里，松手更弹；正念是温柔地接住。这引出第十九招：三分钟呼吸空间。\n")
+    L.append("- **道理二 认知解离（接纳承诺疗法 ACT 的核心）**：大脑会自动蹦出很多念头——“我不行”“我不干了”“我太差了”。但这些念头只是念头，不是事实，更不是命令。你不是你的念头。神经科学发现，当你和念头“解离”（只观察不认同），大脑里管“把念头当真”的区域就安静了，你不再被它牵着跑。这引出第二十招：认知解离法。\n")
+    L.append("- 一句话：心不静，靠“把注意轻轻放到呼吸上”（正念呼吸空间）；被念头带跑，靠“把念头看成天上的云、不追不赶”（认知解离）。道理一→三分钟呼吸空间；道理二→认知解离法。\n")
+    L.append("\n## 四、新招19：三分钟呼吸空间（正念 MBSR，让心静下来）\n")
+    L.append("适用：心不够静、浮躁不安、坐不住、火往上冒、脑子像有猴子蹦。一句话——用三分钟，把飘走的注意轻轻拉回呼吸，心就静了。三步：\n")
+    L.append("- **①觉察（约1分）**：先问自己“我现在怎么了？”浮躁？生气？走神？把注意力转向内在，给情绪起个名——“我在浮躁”。别评判好坏，看见就好。\n")
+    L.append("- **②集中呼吸（约1分多）**：把全部注意放到呼吸上。吸气数一、呼气数一、吸气数二……只跟呼吸走，跑偏了就轻轻拉回来。呼吸是“锚”，把乱飘的心拴回当下。\n")
+    L.append("- **③扩展（回到事）**：带着“看见了、静了一点”的觉知，慢慢睁眼，回到手头的事——写字、回消息、听会。心像湖面，风过了自然平。整个过程只三分钟，比发呆刷手机值。\n")
+    L.append("- 要点：不是硬压浮躁，是温柔地看见它、用呼吸接住。和静音模式是搭档——水杯爱晃，就用呼吸把水稳一稳。场合里心一浮，先三步呼吸，再说观点。不一定要闭眼：盯笔/看叶+呼吸一样是锚；哪怕三十秒深呼吸也能降半截火。\n")
+    L.append("\n**三分钟呼吸空间口诀**\n")
+    L.append("> 一觉浮躁二回呼吸，三带觉知做手里事；心像湖面风过自静，正念三分钟就平息。\n")
+    L.append("\n## 五、新招20：认知解离法（念头不是事实，不被念头带跑）\n")
+    L.append("适用：委屈生气时脑子里冒出“我不行”“我不干了”“我真没用”，你把它们当真、越想越炸越丧、甚至说出狠话。一句话——给念头加前缀，把它看成天上的云，不追不赶、照样干活。三步：\n")
+    L.append("- **①加标签**：当念头冒出，前面轻轻加一句——“我注意到，我正在想：我不行了”，或“有个念头飘过来说：我不干了”。加个前缀，你和念头间多一道缝，它不再是“你”，只是脑子里的广播。\n")
+    L.append("- **②看云**：把念头当天上的云、路上的车——看见它，但不追不赶、不和它吵架。它爱飘就飘，你站地上看；念头自己变淡飘走，不用使劲甩。\n")
+    L.append("- **③选动作**：念头只是念头，不是命令。问自己“带着这个念头，我下一步做什么有用的事？”然后照样写报告、回消息——念头嘟囔，你照样干活。你不是被念头绑架的人，是听得到广播还能自己走路的人。\n")
+    L.append("- 要点：你不是你的念头。小李那句“不干了”若加前缀变成“我注意到我正在想：不干了”，就知道那只是气头上的广播，不会当真甩出去。和认知重评是搭档——重评是换掉念头，解离是先退后看清楚念头不是你。解离不是消灭念头，是“念头≠我≠事实≠命令”。\n")
+    L.append("\n**认知解离口诀**\n")
+    L.append("> 念头不是我，加个前缀看云飘；它说它说由它说，我干我的不逃跑。\n")
     L.append("\n## 六、费曼自测题（旧+新结合）\n")
-    L.append("用自己的话回答：*如果下次我又被一句难听话点着、火一下窜上来，或者一坐到工位就忍不住摸手机、还因为写岔了活儿在心里骂自己没用，我会怎么做，才能既不当场炸、又能管住浮躁、还不对自已太狠、把该干的活干好？*\n")
+    L.append("用自己的话回答：*如果下次我又被一句难听话点着、心浮坐不住、脑子里还冒出“我不行了”“我不干了”的念头，我会怎么做，才能既不当场炸、又能管住浮躁、又不被念头带跑、把该干的活干好？*\n")
     L.append("标准答案要点：\n")
-    L.append("1. 先预设护栏（列触发/写护栏/练自动）：把“遇到刺激怎么办”写成“如果…就…”剧本——火起→退后喝口水、闭嘴数六；坐定→开番茄钟手机扔远；提前写进脑子、天天练成肌肉记忆，现场自动执行不靠意志。\n")
-    L.append("2. 身体被勾动时——身体急停法（离开/喝口水/握拳松拳）先降温；想回怼时——六秒法则（闭嘴数六）+我信息只说观点；上头时——第三人称抽离+冲动冲浪；一点小火苗先五步刹车。\n")
-    L.append("3. 对自己温柔（自我慈悲）：觉察“我在骂自己”→共通人性“人人会错不全我”→手放胸口说“慢慢来我可以”，用安抚代替自责（自责→皮质醇↑更炸；慈悲→安抚系统→更快改好）。先安抚再改活。\n")
-    L.append("4. 面对大活/浮躁坐不住——两分钟启动法（拆成只写标题这种小步→定两分钟闹钟只做一点→动起来启动效应推着走），再用番茄专注+五感着陆养专注；别人脸色→课题分离（别人的题不扛）。始终记：场合不是秀脾气的地方，只是说观点的地方；提前装好护栏、现场不炸，对自己温柔、心如止水。\n")
+    L.append("1. 先静心（三分钟呼吸空间）：觉察“我在浮躁/被说难受”→手机扔远、注意放呼吸（吸数呼数、跑偏拉回）→带静一点的觉知睁眼，用我信息只说观点。不是硬压，是温柔接住。\n")
+    L.append("2. 身体被勾动时——身体急停法（离开/喝口水/握拳松拳）先降温；想回怼时——六秒法则（闭嘴数六）+我信息只说观点；上头时——第三人称抽离+冲动冲浪；小火苗先五步刹车。\n")
+    L.append("3. 念头乱飞时——认知解离：加标签“我注意到我正在想…”→当云看不追不赶→问“带它我下一步干啥”照样改活（念头是广播不是命令）；也可配合情绪命名（先起名）和认知重评（换掉歪念头）。对自己温柔（自我慈悲）：觉察自责→共通人性→手放胸口，用安抚代替自责。\n")
+    L.append("4. 面对大活/浮躁坐不住——两分钟启动法（拆小步→定两分钟只做一点→动起来）+番茄专注+五感着陆养专注；别人脸色→课题分离（别人的题不扛）。始终记：场合不是秀脾气、更不是把气话当真扔出去的地方，只是说观点的地方；心浮先三分钟呼吸静一静，念头乱加前缀看它飘。\n")
     L.append("\n## 七、今日带走的两句新口诀\n")
-    L.append("1. 预设护栏法：如果火起我就退，如果坐定就开钟；提前写进脑子里，现场不靠意志力。\n")
-    L.append("2. 自我慈悲法：出错不是我一个，拍拍胸口对自己好；不骂自己不焦灼，心如止水静悄悄。\n")
-    L.append("3. 一句话收尾：场合不是秀脾气的地方，只是说观点的地方；提前装好护栏、现场不炸，对自己温柔、心如止水，你会越来越稳。\n")
+    L.append("1. 三分钟呼吸空间：一觉浮躁二回呼吸，三带觉知做手里事；心像湖面风过自静，正念三分钟就平息。\n")
+    L.append("2. 认知解离法：念头不是我，加个前缀看云飘；它说它说由它说，我干我的不逃跑。\n")
+    L.append("3. 一句话收尾：场合不是秀脾气、更不是把气话当真扔出去的地方，只是说观点的地方；心浮时先三分钟呼吸静一静，念头乱时加前缀看它飘，你会越来越稳。\n")
     return "\n".join(L)
 
 # ---------------------------------------------------------------- 主流程
@@ -822,7 +790,7 @@ def main():
     sections_js = "window.SECTIONS = " + json.dumps(SECTIONS, ensure_ascii=False) + ";"
     audio_js = "window.AUDIO = " + json.dumps(audio, ensure_ascii=False) + ";"
     html = HTML.replace("__LESSON_DATA__", sections_js).replace("__AUDIO_DATA__", audio_js)
-    out_html = os.path.join(WS, "emotion-class-20260723.html")
+    out_html = os.path.join(WS, "emotion-class-20260724.html")
     with open(out_html, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"[html] 写出 {out_html} ({len(html)/1024:.0f} KB)")
@@ -831,7 +799,7 @@ def main():
     with open(out_md, "w", encoding="utf-8") as f:
         f.write(md)
     print(f"[md] 写出 {out_md} ({len(md)/1024:.0f} KB)")
-    dated = os.path.join(WS, "情绪管理-晓晓老师课堂笔记_20260723.md")
+    dated = os.path.join(WS, "情绪管理-晓晓老师课堂笔记_20260724.md")
     with open(dated, "w", encoding="utf-8") as f:
         f.write(md)
     print(f"[md] 写出带日期副本 {dated} ({len(md)/1024:.0f} KB)")
